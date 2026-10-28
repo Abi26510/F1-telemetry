@@ -9,6 +9,11 @@
 
 An interactive, high-performance Formula 1 telemetry analytics platform that reconstructs qualifying laps using authentic car GPS positional coordinates, generates continuous speed heatmaps with Matplotlib `LineCollection`, analyzes micro-sector splits, and tracks live session weather conditions across all 78 championship circuits in Formula 1 history.
 
+**Live Demo:** [https://f1-telemetry-ak.vercel.app/](https://f1-telemetry-ak.vercel.app/)
+
+[![Dashboard Preview 1](docs/assets/dashboard-preview-1.png)](https://f1-telemetry-ak.vercel.app/)
+[![Dashboard Preview 2](docs/assets/dashboard-preview-2.png)](https://f1-telemetry-ak.vercel.app/)
+
 ---
 
 ## 📸 Key Features
