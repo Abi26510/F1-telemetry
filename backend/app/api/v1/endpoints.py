@@ -4,14 +4,18 @@ from backend.app.api.v1.schemas import (
     NextRaceResponse,
     CircuitOption,
     SessionTelemetryResponse,
-    AuthStatusResponse
+    AuthStatusResponse,
+    AuthLoginRequest,
+    AuthLoginResponse
 )
 from backend.app.services.schedule_service import get_next_race_countdown
 from backend.app.services.f1_service import (
     get_available_years,
     get_curated_circuits,
     get_session_telemetry,
-    get_auth_status
+    get_auth_status,
+    authenticate_f1,
+    logout_f1
 )
 
 router = APIRouter()
@@ -32,6 +36,20 @@ def auth_status():
     Returns whether official Formula 1 live timing credentials are active.
     """
     return get_auth_status()
+
+@router.post("/auth/login", response_model=AuthLoginResponse, summary="Sign in with Formula 1 credentials")
+def login(payload: AuthLoginRequest):
+    """
+    Authenticates with Formula 1 IDP and connects backend to official live telemetry streams.
+    """
+    return authenticate_f1(username=payload.username, password=payload.password)
+
+@router.post("/auth/logout", response_model=AuthStatusResponse, summary="Disconnect Formula 1 account")
+def logout():
+    """
+    Clears cached Formula 1 tokens and disconnects session.
+    """
+    return logout_f1()
 
 @router.get("/years", response_model=List[int], summary="List available championship seasons")
 def get_years():

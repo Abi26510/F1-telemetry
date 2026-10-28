@@ -23,7 +23,11 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 * **⛅ Meteorological Telemetry**: Real-time atmospheric air temperature, track surface temperature, atmospheric pressure, relative humidity, wind velocity vectors, and wet/dry track indicators.
 * **⏳ Next Grand Prix Live Countdown**: Real-time ticking countdown to the next Formula 1 event with country flag and venue details.
 * **📅 Historical Seasons (2018–2024)**: Official **2023 Championship Season** pre-loaded with all 22 official Grand Prix rounds and authentic pole lap benchmarks.
-* **🔐 Formula 1 Live Timing Auth**: Integrated setup modal and authentication guides for connecting free formula1.com accounts for live streaming telemetry.
+* **🔐 Formula 1 Entry Gateway & Live API Authentication**:
+  * **Interactive Gateway on Site Entry**: Automatic connection portal welcoming visitors to connect their official Formula 1 credentials.
+  * **Direct IDP Token Exchange**: Securely authenticates via `https://id.formula1.com/as/token` and provisions FastF1's `token_manager` for live session telemetry streaming.
+  * **Guest / 2023 Archive Mode**: Instant one-click exploration mode allowing access to all 22 official rounds without requiring immediate sign-in.
+  * **Session Management**: Live status badge in the header and one-click disconnect.
 
 ---
 
@@ -33,12 +37,14 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 ┌────────────────────────────────────────────────────────┐
 │                      DATA SOURCES                      │
 │   FastF1 API (Live Timing, Car GPS, Weather, Laps)     │
+│   Formula 1 IDP (id.formula1.com Authentication)       │
 └──────────────────────────┬─────────────────────────────┘
                            │
                            ▼
 ┌────────────────────────────────────────────────────────┐
 │                   BACKEND ENGINE                       │
 │  FastAPI (Python 3.10+)                                │
+│  ├── Auth & Token Manager (fastf1.internals.f1account) │
 │  ├── Local Disk Cache (fastf1.Cache)                   │
 │  ├── Telemetry & GPS Processing Engine (Pandas, NumPy) │
 │  ├── Speed Visualizer (Matplotlib LineCollection)      │
@@ -49,7 +55,8 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 ┌────────────────────────────────────────────────────────┐
 │                  FRONTEND CLIENT                       │
 │  React 18 + Vite (Responsive Dark F1 Theme)            │
-│  ├── Header: Next Race Live Countdown Banner           │
+│  ├── Entry: F1 API Connection Gateway Modal            │
+│  ├── Header: Live Countdown Banner & Auth Status Pill  │
 │  ├── Left: Season Dropdown, Circuit Selector & Outline │
 │  └── Right: Speed Heatmap, Sector Splits & Weather     │
 └────────────────────────────────────────────────────────┘
@@ -63,12 +70,12 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/
-│   │   │   ├── endpoints.py         # REST route definitions
-│   │   │   └── schemas.py           # Pydantic v2 telemetry & weather schemas
+│   │   │   ├── endpoints.py         # REST route definitions (telemetry & auth)
+│   │   │   └── schemas.py           # Pydantic v2 schemas for telemetry & auth
 │   │   ├── core/
 │   │   │   └── config.py            # Settings, paths, and CORS configuration
 │   │   ├── services/
-│   │   │   ├── f1_service.py        # FastF1 data loading & 2023 records
+│   │   │   ├── f1_service.py        # FastF1 data loading, auth & 2023 records
 │   │   │   └── visualizer.py        # Matplotlib LineCollection speed heatmap
 │   │   └── main.py                  # FastAPI application entrypoint
 │   └── requirements.txt             # Python dependencies
@@ -78,17 +85,17 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 │   │   └── track_svgs/              # 78 authentic F1 circuit SVG maps
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── AuthModal.jsx        # Formula 1 API authentication modal
+│   │   │   ├── AuthModal.jsx        # Formula 1 API authentication gateway
 │   │   │   ├── CircuitSelector.jsx  # Season, circuit & driver selection
 │   │   │   ├── CountdownBanner.jsx  # Live next-race countdown banner
 │   │   │   ├── SectorComparison.jsx # S1/S2/S3 splits & record holders
 │   │   │   ├── TelemetryViewer.jsx  # Driver stats & speed heatmap display
 │   │   │   └── WeatherCard.jsx      # Meteorological & track condition cards
 │   │   ├── services/
-│   │   │   └── api.js               # Axios REST API client
+│   │   │   └── api.js               # Axios / Fetch REST API client
 │   │   ├── utils/
 │   │   │   └── trackSvgMapper.js    # Circuit-to-SVG mapper for all 78 tracks
-│   │   ├── App.jsx                  # Main dashboard layout
+│   │   ├── App.jsx                  # Main dashboard layout & entry auth trigger
 │   │   ├── index.css                # F1 Racing UI styles & responsive grid
 │   │   └── main.jsx                 # React root DOM mounting
 │   └── package.json                 # Frontend dependencies & Vite configuration
@@ -96,6 +103,7 @@ An interactive, high-performance Formula 1 telemetry analytics platform that rec
 ├── scripts/
 │   ├── download_all_authentic_svgs.py # Vector downloader for all 78 circuits
 │   ├── verify_backend_api.py          # API automated test suite
+│   ├── test_auth_endpoints.py         # F1 authentication verification
 │   └── test_svg_mapper.mjs            # Track SVG mapping verification
 │
 ├── .gitignore                       # Clean Git configuration
@@ -154,12 +162,25 @@ npm run dev
 
 | Endpoint | Method | Description |
 | :--- | :---: | :--- |
+| `/api/v1/auth/login` | `POST` | Authenticate with Formula 1 credentials to unlock live telemetry access. |
+| `/api/v1/auth/logout` | `POST` | Clear cached F1 tokens and disconnect session. |
+| `/api/v1/auth/status` | `GET` | Check current Formula 1 account connection status. |
 | `/api/v1/years` | `GET` | List available championship seasons (2018–2024). |
 | `/api/v1/circuits?year=2023` | `GET` | List all circuits for the requested season (22 rounds for 2023). |
 | `/api/v1/telemetry/speed-map` | `GET` | Fetch lap telemetry, speed heatmap, sector splits, and weather. |
 | `/api/v1/calendar/next-race` | `GET` | Upcoming Grand Prix details and countdown timestamp. |
-| `/api/v1/auth/status` | `GET` | Formula 1 account live timing authentication status. |
 | `/health` | `GET` | API health check endpoint. |
+
+### 🔐 Authentication Request Example
+```json
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "your_email@example.com",
+  "password": "your_password"
+}
+```
 
 ### Telemetry Request Parameters
 ```text
@@ -179,6 +200,9 @@ Automated test scripts are included in `scripts/`:
 ```bash
 # Verify backend API endpoints and 2023 data
 python scripts/verify_backend_api.py
+
+# Verify F1 authentication login/logout flow
+python scripts/test_auth_endpoints.py
 
 # Verify SVG mapping across all 78 circuits
 node scripts/test_svg_mapper.mjs

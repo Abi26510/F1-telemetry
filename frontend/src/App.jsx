@@ -6,7 +6,7 @@ import TelemetryViewer from './components/TelemetryViewer';
 import SectorComparison from './components/SectorComparison';
 import WeatherCard from './components/WeatherCard';
 import AuthModal from './components/AuthModal';
-import { AlertCircle, RefreshCw, Key } from 'lucide-react';
+import { AlertCircle, RefreshCw, Key, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const [years, setYears] = useState([2024, 2023, 2022, 2021, 2020, 2019, 2018]);
@@ -38,10 +38,17 @@ export default function App() {
       }
 
       // Fetch Auth Status
+      let currentAuth = null;
       try {
-        const auth = await fetchAuthStatus();
-        setAuthStatus(auth);
+        currentAuth = await fetchAuthStatus();
+        setAuthStatus(currentAuth);
       } catch (e) {}
+
+      // Open F1 Auth gateway on entering the site if not authenticated and not dismissed
+      const dismissed = sessionStorage.getItem('f1_auth_dismissed');
+      if (!currentAuth?.is_authenticated && !dismissed) {
+        setIsAuthModalOpen(true);
+      }
 
       // Fetch Available Seasons (2018-2024, 2025 removed)
       try {
@@ -121,6 +128,18 @@ export default function App() {
     }
   };
 
+  // Handler: Auth state change (Login or Logout)
+  const handleAuthChange = (newAuth) => {
+    setAuthStatus(newAuth);
+    if (newAuth?.is_authenticated) {
+      sessionStorage.setItem('f1_auth_dismissed', 'true');
+      // Re-fetch telemetry with authorized backend access
+      if (selectedCircuit) {
+        loadTelemetryData(selectedYear, selectedCircuit, selectedDriver);
+      }
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Header with Brand and Top-Middle Countdown */}
@@ -138,7 +157,7 @@ export default function App() {
         {/* Top Middle Countdown */}
         <CountdownBanner nextRace={nextRace} loading={loadingSchedule} />
 
-        {/* Top Right Auth Quick Pill */}
+        {/* Top Right Auth Status Quick Pill */}
         <div style={{ position: 'absolute', right: '1.5rem', top: '1.25rem' }}>
           <button
             onClick={() => setIsAuthModalOpen(true)}
@@ -153,11 +172,16 @@ export default function App() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              transition: 'background 0.2s'
             }}
           >
             <Key size={13} />
-            <span>{authStatus?.is_authenticated ? 'F1 Live API Connected' : 'F1 Auth Guide'}</span>
+            <span>
+              {authStatus?.is_authenticated
+                ? `● F1 Connected (${authStatus.username || 'Active'})`
+                : '⚡ Connect F1 API'}
+            </span>
           </button>
         </div>
       </header>
@@ -222,7 +246,7 @@ export default function App() {
               fontWeight: 600
             }}
           >
-            Setup Instructions ›
+            {authStatus?.is_authenticated ? 'Manage F1 Connection ›' : 'Connect Account ›'}
           </button>
         </div>
       )}
@@ -275,11 +299,12 @@ export default function App() {
         </section>
       </main>
 
-      {/* Auth Instructions Modal */}
+      {/* F1 API Authentication Gateway Modal (Opens on entering the site) */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         authStatus={authStatus}
+        onAuthChange={handleAuthChange}
       />
 
       {/* Footer */}

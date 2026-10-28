@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
 export async function fetchNextRace() {
   const res = await fetch(`${API_BASE_URL}/schedule/next`);
@@ -33,6 +33,31 @@ export async function fetchAuthStatus() {
   } catch {
     return { is_authenticated: false };
   }
+}
+
+export async function loginF1({ username, password }) {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Sign-in failed. Please check your credentials.');
+  }
+  return res.json();
+}
+
+export async function logoutF1() {
+  const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    throw new Error('Failed to disconnect Formula 1 account.');
+  }
+  return res.json();
 }
 
 export async function fetchTelemetrySpeedMap({ year = 2023, gp = '1', sessionType = 'Q', driver = '' }) {

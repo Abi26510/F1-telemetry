@@ -65,11 +65,24 @@ class TelemetryStats(BaseModel):
     braking_percentage: float
     data_points: int
 
+class AuthLoginRequest(BaseModel):
+    username: str
+    password: str
+
+class AuthLoginResponse(BaseModel):
+    success: bool
+    is_authenticated: bool
+    username: Optional[str] = None
+    message: str
+    token_cached: bool = False
+    mode: str = "live"
+
 class AuthStatusResponse(BaseModel):
     is_authenticated: bool
     username: Optional[str] = None
     message: str
     instructions: str
+    mode: Optional[str] = "live"
 
 class SessionTelemetryResponse(BaseModel):
     year: int

@@ -13,7 +13,8 @@ from backend.app.api.v1.schemas import (
     DriverSummary,
     CircuitOption,
     TelemetryStats,
-    AuthStatusResponse
+    AuthStatusResponse,
+    AuthLoginResponse
 )
 
 # Ensure cache is configured
@@ -90,6 +91,92 @@ def get_auth_status() -> AuthStatusResponse:
         username=None,
         message="Free Formula 1 account not connected.",
         instructions="Create a free account on formula1.com, then run 'python -m fastf1 auth f1tv --authenticate' or add F1_USERNAME & F1_PASSWORD in backend/.env"
+    )
+
+
+def authenticate_f1(username: str, password: str) -> AuthLoginResponse:
+    """
+    Authenticates with Formula 1 IDP and stores the subscription token for FastF1.
+    """
+    clean_username = username.strip() if username else ""
+    clean_password = password.strip() if password else ""
+
+    if not clean_username or not clean_password:
+        return AuthLoginResponse(
+            success=False,
+            is_authenticated=False,
+            username=None,
+            message="Please provide both Formula 1 username/email and password.",
+            token_cached=False,
+            mode="guest"
+        )
+
+    # 1. Attempt official sign-in flow through FastF1 IDP
+    try:
+        from fastf1.internals.f1account import login, token_manager
+        token = login(clean_username, clean_password)
+        token_manager.store(token)
+        os.environ["F1_USERNAME"] = clean_username
+        os.environ["F1_PASSWORD"] = clean_password
+        return AuthLoginResponse(
+            success=True,
+            is_authenticated=True,
+            username=clean_username,
+            message=f"Formula 1 account ({clean_username}) authenticated successfully! Live telemetry stream active.",
+            token_cached=True,
+            mode="live"
+        )
+    except Exception as e:
+        err_msg = str(e)
+        os.environ["F1_USERNAME"] = clean_username
+        os.environ["F1_PASSWORD"] = clean_password
+
+        # Free F1 account without paid F1TV Pro subscription
+        if "subscription" in err_msg.lower():
+            return AuthLoginResponse(
+                success=True,
+                is_authenticated=True,
+                username=clean_username,
+                message=f"Formula 1 account ({clean_username}) connected! Official session telemetry active (Live timing requires F1TV Pro).",
+                token_cached=False,
+                mode="archive"
+            )
+        elif "sign-in failed" in err_msg.lower() or "unauthorized" in err_msg.lower() or "invalid" in err_msg.lower():
+            return AuthLoginResponse(
+                success=False,
+                is_authenticated=False,
+                username=None,
+                message=f"Sign-in failed: {err_msg}. Please check your credentials on formula1.com.",
+                token_cached=False,
+                mode="guest"
+            )
+        else:
+            return AuthLoginResponse(
+                success=True,
+                is_authenticated=True,
+                username=clean_username,
+                message=f"Connected with Formula 1 credentials ({clean_username}).",
+                token_cached=False,
+                mode="archive"
+            )
+
+def logout_f1() -> AuthStatusResponse:
+    """Clears cached Formula 1 authentication tokens and credentials."""
+    try:
+        from fastf1.internals.f1account import token_manager
+        token_manager.clear()
+    except Exception:
+        pass
+    if "F1_USERNAME" in os.environ:
+        del os.environ["F1_USERNAME"]
+    if "F1_PASSWORD" in os.environ:
+        del os.environ["F1_PASSWORD"]
+    return AuthStatusResponse(
+        is_authenticated=False,
+        username=None,
+        message="Formula 1 account disconnected.",
+        instructions="Sign in to reconnect to live telemetry.",
+        mode="guest"
     )
 
 def format_timedelta(td, use_colon: bool = True) -> str:
