@@ -158,6 +158,32 @@ npm run dev
 
 ---
 
+## 🌐 Production Deployment (Render + Vercel)
+
+### 1. Backend on Render (Web Service)
+1. In [Render Dashboard](https://dashboard.render.com/), click **New +** → **Web Service** and connect this repository.
+2. Configure settings:
+   * **Name**: `f1-telemetry-backend`
+   * **Environment**: `Python 3`
+   * **Root Directory**: Leave blank (repository root)
+   * **Build Command**: `pip install -r backend/requirements.txt`
+   * **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+3. Click **Deploy Web Service** and copy your service URL (e.g. `https://f1-telemetry-api.onrender.com`).
+
+### 2. Frontend on Vercel
+1. In [Vercel Dashboard](https://vercel.com/dashboard), click **Add New...** → **Project** and import this repository.
+2. Configure settings:
+   * **Framework Preset**: `Vite`
+   * **Root Directory**: `frontend`
+   * **Build Command**: `npm run build`
+   * **Output Directory**: `dist`
+3. Expand **Environment Variables** and add:
+   * **Key**: `VITE_API_BASE_URL`
+   * **Value**: `https://your-backend.onrender.com/api/v1` *(Note: `https://your-backend.onrender.com` without `/api/v1` or with a trailing slash is also automatically handled)*
+4. Click **Deploy**.
+
+---
+
 ## 📡 API Reference
 
 | Endpoint | Method | Description |

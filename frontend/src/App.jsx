@@ -221,7 +221,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Notice if benchmark mode is active */}
+      {/* Notice if benchmark mode is active
       {telemetry?.auth_notice && (
         <div style={{
           background: 'rgba(56, 189, 248, 0.08)',
@@ -249,7 +249,7 @@ export default function App() {
             {authStatus?.is_authenticated ? 'Manage F1 Connection ›' : 'Connect Account ›'}
           </button>
         </div>
-      )}
+      )} */}
 
       {/* MAIN DASHBOARD LAYOUT */}
       <main className="app-layout-main">
